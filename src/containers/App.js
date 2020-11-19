@@ -7,6 +7,7 @@ import Home from '../components/Home/Home'
 import Admin from '../components/Admin/Admin'
 import Footer from '../components/Footer/Footer'
 import PrivacyPolicy from '../components/PrivacyPolicy/PrivacyPolicy'
+import AlertPrivacy from '../UI/AlertPrivacy/AlertPrivacy'
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path='/privacy-policy' component={PrivacyPolicy} />
         <Redirect to='/home' />
       </Switch>
+      <AlertPrivacy />
       <Footer />
     </BrowserRouter>
   );
