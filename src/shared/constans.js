@@ -1,5 +1,5 @@
-export const CALENDAR_TERMS = 'calendar_terms'
-export const CALENDAR_USERS = 'calendar_users'
+export const CALENDAR = 'calendar'
 export const DAYS = 'days'
-export const HOURS = 'hours'
+export const DAYS_RESERVATION = 'days_reservation'
+
 

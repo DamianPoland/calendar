@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react'
 import style from './Home.module.css'
 import { firestore } from '../../shared/fire'
-import { CALENDAR_TERMS, CALENDAR_USERS, DAYS, HOURS } from '../../shared/constans'
+import { CALENDAR, DAYS_RESERVATION, DAYS } from '../../shared/constans'
+
 
 // calendar
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css';
-import './HomeCalendar.css'
+import '../../shared/Calendar.css'
+
 
 // images
 import logo from '../../assets/logo512.png'
+
 
 // list of services
 const services = [
@@ -18,11 +21,14 @@ const services = [
     { id: 3, name: "Wybielanie", price: '150' },
 ]
 
+
 // list with all available days fetched from DB
 let availableDaysList = []
 
+
 // list with all available hours in days fetched from DB
 let availableHoursList = []
+
 
 // clicked day
 let clickedDay = ''
@@ -30,21 +36,25 @@ let clickedDay = ''
 
 const Home = () => {
 
+
     // STATE - set service id
     const [service, setService] = useState(services[0].id)
 
-    // STATE - set service id
+
+    // STATE - set displayed month
     const [displayedMonth, setDisplayedMonth] = useState(`${new Date().getFullYear()}-${new Date().getMonth()}`) // show today year and month in code: "2020-10" like in DB
 
-    // STATE - set enabled days (e.g.: [{year: 2020, month: 10, day: 28}, {year: 2020, month: 11, day: 4}] -> month 0-11 , day 1-31, NOTE: 0 is first month, month 12 will be 1 of next year, day 32 will be 1 next month)
+
+    // STATE - set enabled days - empty on the begining and fetched from DB (e.g.: [{year: 2020, month: 10, day: 28}, {year: 2020, month: 11, day: 4}] -> month 0-11 , day 1-31, NOTE: 0 is first month, month 12 will be 1 of next year, day 32 will be 1 next month)
     const [enabledDays, setEnabledDays] = useState([])
+
 
     // STATE - set hours of day
     const [dayHours, setDayHours] = useState([])
 
+
     // STATE - poup reservation, false or day number
     const [reservation, setReservation] = useState(false)
-
 
 
     // EFFECT - scroll to top when open tab
@@ -52,19 +62,27 @@ const Home = () => {
         window.scrollTo(0, 0)
     }, [])
 
+
     // EFFECT - get data from month collection according to state: displayedMonth
     useEffect(() => {
+
         // get available days from DB
-        firestore.collection(CALENDAR_TERMS).doc(displayedMonth).collection(DAYS).get() // get available days from DB 
+        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).get()
             .then(resp => {
 
                 // clear list with all available days in this month fetched from DB
                 availableDaysList = []
+
                 // clear list with all available hours in day in this month fetched from DB
                 availableHoursList = []
 
                 // save data from DB in lists - all days and hours in month
                 resp.forEach(doc => {
+
+                    // if no data then not show (if doc exist in DB but has no data)
+                    if (Object.keys(doc.data()).length === 0) {
+                        return
+                    }
 
                     // make list with all available days in this month
                     const yearMonth = displayedMonth.split('-')
@@ -74,36 +92,44 @@ const Home = () => {
                     // make list with all available hours in days in this month
                     const hoursValue = Object.keys(doc.data()).map(item => [item, doc.data()[item]]).sort() // change object {hour: availability} to array [hour, availability] and sort
                     const dayWithHours = { name: parseInt(doc.id), value: hoursValue }
-                    console.log('dayWithHours: ', dayWithHours);
                     availableHoursList.push(dayWithHours)
                 })
-                setEnabledDays(availableDaysList) // save list of all days in month to state
-                console.log('availableHoursList: ', availableHoursList);
+
+                // save list of all days in month to state
+                setEnabledDays(availableDaysList)
             })
             .catch(err => console.log('err', err))
     }, [displayedMonth])
 
 
-
-
     // call when displayed month change
     const handlerActiveDateChange = ({ activeStartDate, value, view }) => {
-        setDisplayedMonth(`${activeStartDate.getFullYear()}-${activeStartDate.getMonth()}`) // set state of visible year and month in code: "2020-10" like in DB
-        setEnabledDays([]) // cleaer state of days
-        setDayHours([]) // clear state of hours
+
+        // set state of visible year and month in code: "2020-10" like in DB => useEffect will start
+        setDisplayedMonth(`${activeStartDate.getFullYear()}-${activeStartDate.getMonth()}`)
+
+        // cleaer state of days
+        setEnabledDays([])
+
+        // clear state of hours
+        setDayHours([])
     }
 
     // call when click day
     const handlerClickDay = (value, event) => {
+
         // set state of available and disable hours in clicked day
         const clickedDayHours = availableHoursList.find(item => item.name === value.getDate()).value
         setDayHours(clickedDayHours)
-        clickedDay = value.getDate() // save clicked day for reservation
+
+        // save clicked day for reservation
+        clickedDay = value.getDate()
     }
 
     // function to enable/disable days, fuction call for every visible day in calendar and if return true than disabled day and if return false then enabled day
     const handlerTileDisabled = ({ date, view }) => {
         return (
+
             // disable all days and enable days from state
             !enabledDays.some(disabledDateItem =>
                 date.getFullYear() === disabledDateItem.year && date.getMonth() === disabledDateItem.month && date.getDate() === disabledDateItem.day)
@@ -114,11 +140,15 @@ const Home = () => {
     return (
         <section className={style.background}>
 
+
+            {/* header */}
             <h1 className={style.header}>Moduł: KALENDARZ</h1>
             <p className={style.desc}>Przykładowy modół kalendarza służy do rezerwowania terminów. Może służyć do rezerwacji stolików w restauracji, wizyty u specjalisty itp.</p>
 
+
             <div className={style.calendar}>
                 <div className={style.calendar_container}>
+
 
                     {/* reservation popup*/}
                     {
@@ -126,19 +156,21 @@ const Home = () => {
                         <div className={style.calendar_reservation}>
                             <p className={style.calendar_reservationText}>Imie</p>
                             <p className={style.calendar_reservationText}>nazwisko</p>
-                            <p className={style.calendar_reservationText}>{displayedMonth}</p>
-                            <p className={style.calendar_reservationText}>{clickedDay}</p>
-                            <p className={style.calendar_reservationText}>{reservation}</p>
+                            <p className={style.calendar_reservationText}>Rok i miesiąc: {displayedMonth}</p>
+                            <p className={style.calendar_reservationText}>Dzień: {clickedDay}</p>
+                            <p className={style.calendar_reservationText}> Godzina: {reservation}</p>
                             <button className={style.calendar_reservationButton} onClick={() => setReservation(false)}>Cofnij</button>
                             <button className={style.calendar_reservationButton}>Rezerwuj</button>
                         </div>
                     }
+
 
                     {/* company description*/}
                     <div className={style.calendar_header}>
                         <img className={style.calendar_headerImg} src={logo} alt='logo' />
                         <p className={style.calendar_headerDesc}>Nazwa Firmy</p>
                     </div>
+
 
                     {/* choose service */}
                     <div className={style.calendar_service}>
@@ -147,6 +179,7 @@ const Home = () => {
                             {services.map(item => <option key={item.id} value={item.id}> {`${item.name}, Cena: ${item.price}zł`} </option>)}
                         </select>
                     </div>
+
 
                     {/* choose date */}
                     <div className={style.calendar_date}>
@@ -163,6 +196,7 @@ const Home = () => {
                             tileDisabled={handlerTileDisabled}
                         />
                     </div>
+
 
                     {/* available days */}
                     {dayHours.length !== 0

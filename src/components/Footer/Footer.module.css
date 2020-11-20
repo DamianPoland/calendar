@@ -1,5 +1,6 @@
 .background {
     background: linear-gradient(to right, rgba(0, 0, 0, 1) 0%, rgb(var(--accent)) 50%, rgba(0, 0, 0, 1) 100%);
+    position: relative;
 }
 
 .container {
@@ -8,6 +9,7 @@
     display: flex;
     justify-content: space-between;
     padding: 2rem;
+
 }
 
 .text {
