@@ -61,6 +61,9 @@ const Admin = () => {
     // EFFECT - get data from month collection according to state: displayedMonth
     useEffect(() => {
 
+        // clear clickedDay when change month
+        setClickedDay()
+
         // get days with added hours from DB 
         firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).get()
             .then(resp => {
