@@ -30,9 +30,8 @@ let addedDaysList = []
 // list with all added hours in days fetched from DB
 let addedHoursList = []
 
-
-// clicked day
-let clickedDay = ''
+// hours list object to send to DB
+let newHoursList = {} // e.g.: { "12:00": true, "13:00": false, "14:00": true }
 
 
 const Admin = () => {
@@ -48,6 +47,9 @@ const Admin = () => {
 
     // STATE - set hours of day
     const [dayHours, setDayHours] = useState([])
+
+    // STATE - set clicked day
+    const [clickedDay, setClickedDay] = useState()
 
 
     // EFFECT - scroll to top when open tab
@@ -95,28 +97,20 @@ const Admin = () => {
     }, [displayedMonth])
 
 
-    // call when displayed month change
-    const handlerActiveDateChange = ({ activeStartDate, value, view }) => {
 
-        // set state of visible year and month in code: "2020-10" like in DB => useEffect displayedMonth will start
-        setDisplayedMonth(`${activeStartDate.getFullYear()}-${activeStartDate.getMonth()}`)
+    // EFFECT - call when click day according to state: clickedDay
+    useEffect(() => {
 
-        // cleaer state of days
-        setWorkDays([])
+        // if state clickedDay is null (first render) then return
+        if (!clickedDay) {
+            return
+        }
 
-        // clear state of hours
-        setDayHours([])
-    }
-
-
-    // call when click day
-    const handlerClickDay = (value, event) => {
-
-        // save clicked day number
-        clickedDay = value.getDate()
+        // clear hours list object to send to DB
+        newHoursList = {}
 
         // get json object of day number and hours (from DB) only one clicked day 
-        let clickedDayHours = addedHoursList.find(item => item.name === value.getDate())
+        let clickedDayHours = addedHoursList.find(item => item.name === clickedDay)
 
         // check if clickedDayHours is undefined (if no data about this day is in DB)
         if (!clickedDayHours) {
@@ -165,6 +159,20 @@ const Admin = () => {
         // set finalWorkHoursList to state
         setDayHours(finalWorkHoursList)
 
+    }, [clickedDay])
+
+
+    // call when displayed month change
+    const handlerActiveDateChange = ({ activeStartDate, value, view }) => {
+
+        // set state of visible year and month in code: "2020-10" like in DB => useEffect displayedMonth will start
+        setDisplayedMonth(`${activeStartDate.getFullYear()}-${activeStartDate.getMonth()}`)
+
+        // cleaer state of days
+        setWorkDays([])
+
+        // clear state of hours
+        setDayHours([])
     }
 
 
@@ -179,19 +187,32 @@ const Admin = () => {
     }
 
 
+    // update list of available hours in DB
     const sendData = () => {
-        // with adjust key (func set make new doc or overwrite existing, func update not overwrite)
-        // firestore.collection(CALENDAR_TERMS).doc('2021-00').collection(DAY).doc('04-08').set({ name: 'exName4', surName: 'exSurName4', email: "ex@ex.com4", desc: 'exDescription something4' })
-        //     .then(() => console.log('success')) // no response
-        //     .catch(err => console.log('err', err))
-
-        // set available term, doc('2021-0') => year-month,  first month is 0
-
-        // TODO: 
-        let docToSentToDB = { "12:00": true, "13:00": false, "14:00": true }
-        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${clickedDay}`).update(docToSentToDB)
+        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${clickedDay}`).update(newHoursList)
             .then(() => console.log('success')) // no response
             .catch(err => console.log('err', err))
+    }
+
+
+    // add or delete hours from hours list object when check/uncheck
+    const hoursListhandler = e => {
+
+        // get hour name
+        const hour = e.target.name
+
+        if (e.target.checked) {
+
+            // add new hour to hours list object with true - new hour and available
+            newHoursList = { ...newHoursList, [hour]: true }
+
+        } else {
+
+            // delate new hour from hours list
+            delete newHoursList[hour]
+        }
+
+        console.log(newHoursList);
     }
 
     return (
@@ -242,9 +263,9 @@ const Admin = () => {
                             maxDetail="month"
                             minDetail="month"
                             onActiveStartDateChange={handlerActiveDateChange}
-                            onClickDay={handlerClickDay}
+                            onClickDay={(value, event) => setClickedDay(value.getDate())}
                             showFixedNumberOfWeeks={true}
-                            tileContent={handlerTileContent} // dodaje opis do danej daty
+                            tileContent={handlerTileContent} // add desc to day
                             tileDisabled={({ date }) => date.getMonth() !== parseInt(displayedMonth.split("-")[1])} // disable days in other months
                         />
                     </div>
@@ -259,10 +280,10 @@ const Admin = () => {
                             <div className={style.calendar_hoursList}>
                                 {dayHours.map(item => {
                                     return (
-                                        <div className={style.calendar_hoursListItem} key={item[0]}>
-                                            <input className={style.calendar_hoursListItemInput} disabled={item[2] ? true : false} onChange={e => console.log(item, e.target.checked)} type="checkbox" name={item[0]} value={item[0]} />
+                                        <div className={style.calendar_hoursListItem} key={`${clickedDay} ${item[0]}`}>
+                                            <input className={style.calendar_hoursListItemInput} disabled={item[2] ? true : false} defaultChecked={false} onChange={hoursListhandler} type="checkbox" name={item[0]} value={item[0]} />
                                             <label className={style.calendar_hoursListItemLabel} htmlFor={item[0]}>{item[0]}</label>
-                                            {item[2] && <p className={style.calendar_hoursListItemDesc}>{item[1] ? "dodano" : "złożona rezerwacja"}</p>}
+                                            {item[2] && <p className={style.calendar_hoursListItemDesc}>{item[1] ? "Już dodano, nikt jeszcze się nie wpisał" : "Termin dodany i ZAREZERWOWANY."}</p>}
                                         </div>
                                     )
                                 })}
@@ -271,8 +292,6 @@ const Admin = () => {
                     }
 
                 </div>
-
-
 
 
             </div>

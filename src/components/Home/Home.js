@@ -90,7 +90,8 @@ const Home = () => {
                     availableDaysList.push(day)
 
                     // make list with all available hours in days in this month
-                    const hoursValue = Object.keys(doc.data()).map(item => [item, doc.data()[item]]).sort() // change object {hour: availability} to array [hour, availability] and sort
+                    const hoursValue = Object.keys(doc.data()).map(item => [item, doc.data()[item]]) // change object {hour: availability} to array [hour, availability]
+                    hoursValue.sort((a, b) => parseInt(a[0]) - parseInt(b[0])) // sort
                     const dayWithHours = { name: parseInt(doc.id), value: hoursValue }
                     availableHoursList.push(dayWithHours)
                 })
