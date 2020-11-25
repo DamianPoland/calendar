@@ -3,6 +3,9 @@ import style from './Home.module.css'
 import { firestore } from '../../shared/fire'
 import { CALENDAR, DAYS_RESERVATION, DAYS } from '../../shared/constans'
 
+// components
+import AlertSmall from '../../UI/AlertSmall/AlertSmall'
+
 
 // calendar
 import Calendar from 'react-calendar'
@@ -16,9 +19,9 @@ import logo from '../../assets/logo512.png'
 
 // list of services
 const services = [
-    { id: 1, name: "Przegląd", price: '50' },
-    { id: 2, name: "Założenie pnomby", price: '180-230' },
-    { id: 3, name: "Wybielanie", price: '150' },
+    { id: 1, name: "Opcja 1", price: '50' },
+    { id: 2, name: "Opcja 2", price: '100' },
+    { id: 3, name: "Opcja 3", price: '150' },
 ]
 
 
@@ -56,6 +59,21 @@ const Home = () => {
     // STATE - poup reservation, false or day number
     const [reservation, setReservation] = useState(false)
 
+    // STATE - poup alert "reservation done"
+    const [alertSmall, setAlertSmall] = useState(false)
+
+    // STATE - input Name
+    const [inputName, setInputName] = useState('') // input value
+    const [inputNameIsInvalid, setInputNameIsInvalid] = useState(false) // only for set isValid/inInvalid before send
+
+    // STATE - input Email
+    const [inputEmail, setInputEmail] = useState('') // input value
+    const [inputEmailIsInvalid, setInputEmailIsInvalid] = useState(false) // only for set isValid/inInvalid before send
+
+    // STATE - input Agreenent
+    const [inputAgreenent, setAgreenent] = useState(false) // input value
+    const [inputAgreenentInvalid, setInputAgreenentIsInvalid] = useState(false) // only for set isValid/inInvalid before send
+
 
     // EFFECT - scroll to top when open tab
     useEffect(() => {
@@ -63,12 +81,13 @@ const Home = () => {
     }, [])
 
 
-    // EFFECT - get data from month collection according to state: displayedMonth
+
+    // EFFECT - get live data (snapshot) from month collection according to state: displayedMonth
     useEffect(() => {
 
         // get available days from DB
-        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).get()
-            .then(resp => {
+        const listener = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).onSnapshot(
+            resp => {
 
                 // clear list with all available days in this month fetched from DB
                 availableDaysList = []
@@ -98,8 +117,15 @@ const Home = () => {
 
                 // save list of all days in month to state
                 setEnabledDays(availableDaysList)
-            })
-            .catch(err => console.log('err', err))
+
+                // clear reservation
+                setReservation(false)
+            },
+            err => console.log('err', err))
+
+        //cleanup listener
+        return () => listener()
+
     }, [displayedMonth])
 
 
@@ -137,13 +163,74 @@ const Home = () => {
         )
     }
 
+    // function to sent reservation to DB
+    const sendReservation = () => {
+
+        // validation input data
+        let isInvalid = false
+
+        // name validation if is min 3 chars
+        if (inputName.trim().length < 3) {
+            setInputNameIsInvalid(true)
+            isInvalid = true
+        } else {
+            setInputNameIsInvalid(false)
+        }
+
+        //email validation
+        const re = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        if (!re.test(String(inputEmail).toLowerCase())) {
+            setInputEmailIsInvalid(true)
+            isInvalid = true
+        } else {
+            setInputEmailIsInvalid(false)
+        }
+
+        // name validation if is min 3 chars
+        if (!inputAgreenent) {
+            setInputAgreenentIsInvalid(true)
+            isInvalid = true
+        } else {
+            setInputAgreenentIsInvalid(false)
+        }
+
+
+        //check if all inputs are valid
+        if (isInvalid) {
+            return
+        }
+
+        // in DB: update hour that is reserved add add reservation data
+        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${clickedDay}`).update({ [reservation]: false }) // update hour that is reserved
+            .then(() => firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${clickedDay}`).update({ [reservation]: { name: inputName, email: inputEmail, type: services.find(item => item.id === service).name } })) // add add reservation data
+            .then(() => {
+                console.log('success set documents: ', CALENDAR, displayedMonth, DAYS, clickedDay)
+
+                // show alert 'reservation done
+                setAlertSmall(true)
+
+            }) // no response
+            .catch(err => console.log('err', err))
+
+        // close reservation popup
+        setReservation(false)
+
+        // clear state of hours
+        setDayHours([])
+
+        console.log("sent reservation");
+    }
+
 
     return (
         <section className={style.background}>
 
+            {/* alert  */}
+            {alertSmall && <AlertSmall description="Dodano rezerwację." hide={() => setAlertSmall(false)} />}
+
 
             {/* header */}
-            <h1 className={style.header}>Moduł: KALENDARZ</h1>
+            <h1 className={style.header}>Testowy moduł: KALENDARZ</h1>
             <p className={style.desc}>Przykładowy modół kalendarza służy do rezerwowania terminów. Może służyć do rezerwacji stolików w restauracji, wizyty u specjalisty itp.</p>
 
 
@@ -155,13 +242,29 @@ const Home = () => {
                     {
                         reservation &&
                         <div className={style.calendar_reservation}>
-                            <p className={style.calendar_reservationText}>Imie</p>
-                            <p className={style.calendar_reservationText}>nazwisko</p>
-                            <p className={style.calendar_reservationText}>Rok i miesiąc: {displayedMonth}</p>
-                            <p className={style.calendar_reservationText}>Dzień: {clickedDay}</p>
-                            <p className={style.calendar_reservationText}> Godzina: {reservation}</p>
+                            <div className={style.calendar_header}>
+                                <img className={style.calendar_headerImg} src={logo} alt='logo' />
+                                <p className={style.calendar_headerDesc}>Nazwa Firmy</p>
+                            </div>
+                            <p className={style.calendar_reservationText}>{`Rezerwacja terminu: ${displayedMonth.split('-')[0]}-${parseInt(displayedMonth.split('-')[1]) + 1}-${clickedDay}, godz: ${reservation}`}</p>
+                            <p className={style.calendar_reservationText}>{`Usługa: ${services.find(item => item.id === service).name}`}</p>
+                            <div className={style.inputContainer}>
+                                <input onChange={event => setInputName(event.target.value)} value={inputName} onFocus={() => setInputNameIsInvalid(false)} className={`${style.input} ${inputNameIsInvalid && style.inputIsInvalid}`} type='text' required />
+                                <label className={style.label}>Twoje imię:</label>
+                            </div>
+                            <div className={style.inputContainer}>
+                                <input onChange={event => setInputEmail(event.target.value)} value={inputEmail} onFocus={() => setInputEmailIsInvalid(false)} className={`${style.input} ${inputEmailIsInvalid && style.inputIsInvalid}`} type='text' required />
+                                <label className={style.label}>Twój e-mail:</label>
+                            </div>
+                            <div className={style.inputCheckBoxContainer}>
+                                <input onChange={event => setAgreenent(event.target.checked ? true : false)} onFocus={() => setInputAgreenentIsInvalid(false)} className={`${style.inputCheckBox} ${inputAgreenentInvalid && style.inputIsInvalidCheckBox}`} type='checkbox' />
+                                <label className={style.labelCheckBox}>Zapoznałem się i akceptuję regulamin serwisu.</label>
+                            </div>
+
+
+
                             <button className={style.calendar_reservationButton} onClick={() => setReservation(false)}>Cofnij</button>
-                            <button className={style.calendar_reservationButton}>Rezerwuj</button>
+                            <button className={style.calendar_reservationButton} onClick={sendReservation}>Rezerwuj</button>
                         </div>
                     }
 

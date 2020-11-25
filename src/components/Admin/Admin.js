@@ -23,10 +23,6 @@ import logo from '../../assets/logo512.png'
 let dafaultdWorkHoursList = [["8:00", true, false], ["9:00", true, false], ["10:00", true, false], ["11:00", true, false], ["12:00", true, false], ["13:00", true, false], ["14:00", true, false], ["15:00", true, false], ["16:00", true, false], ["17:00", true, false], ["18:00", true, false]]
 
 
-// list with all added days fetched from DB
-let addedDaysList = []
-
-
 // list with all added hours in days fetched from DB
 let addedHoursList = []
 
@@ -35,6 +31,9 @@ let newHoursList = {} // e.g.: { "12:00": true, "13:00": false, "14:00": true }
 
 
 const Admin = () => {
+
+    // STATE - left nav 
+    const [displayedTab, setDisplayedTab] = useState("terms") // tabs: "terms" "clients"
 
 
     // STATE - set displayed month
@@ -48,6 +47,9 @@ const Admin = () => {
     // STATE - set hours of day
     const [dayHours, setDayHours] = useState([])
 
+    // STATE - set all reservations
+    const [dayReservations, setDayReservations] = useState([])
+
     // STATE - set clicked day
     const [clickedDay, setClickedDay] = useState()
 
@@ -58,18 +60,19 @@ const Admin = () => {
     // }, [])
 
 
-    // EFFECT - get data from month collection according to state: displayedMonth
+    // EFFECT (terms) - get live data HOURS (snapshot) from month collection according to state: displayedTab
     useEffect(() => {
 
         // clear clickedDay when change month
         setClickedDay()
 
         // get days with added hours from DB 
-        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).get()
-            .then(resp => {
+        const listenerDays = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).onSnapshot(
+            resp => {
 
-                // clear list with all added days in this month fetched from DB
-                addedDaysList = []
+
+                // help list with all added days fetched from DB
+                let addedDaysList = []
 
                 // clear list with all added hours in day in this month fetched from DB
                 addedHoursList = []
@@ -95,17 +98,54 @@ const Admin = () => {
 
                 // save list of all added days in month to state
                 setWorkDays(addedDaysList)
-            })
-            .catch(err => console.log('err', err))
+            },
+            err => console.log('err', err))
+
+        //cleanup listener
+        return () => listenerDays()
+
     }, [displayedMonth])
 
 
-
-    // EFFECT - call when click day according to state: clickedDay
+    // EFFECT (clients) - get live data RESERVATION (snapshot) only for clients tab and for one day according to state: clickedDay
     useEffect(() => {
 
-        // if state clickedDay is null (first render) then return
+        // return when clicked day null
         if (!clickedDay) {
+            return
+        }
+
+        // get one day reservation
+        const listenerReservations = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${clickedDay}`).onSnapshot(
+            resp => {
+
+                // return when document not exist in DB
+                if (!resp.data()) {
+                    return
+                }
+
+                // get one day reservation and make arra
+                const arrayOfReservation = Object.keys(resp.data()).map(item => [item, resp.data()[item]])
+                const arrayOfReservationSorted = arrayOfReservation.sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+
+                // save one day reservations array to state
+                setDayReservations(arrayOfReservationSorted)
+
+            },
+            err => console.log('err', err))
+
+        //cleanup listener
+        return () => listenerReservations()
+
+    }, [clickedDay])
+
+
+
+    // EFFECT (terms) - call when click day according to state: clickedDay
+    useEffect(() => {
+
+        // return when displayed tab is not terms and clicked day null
+        if (displayedTab !== "terms" || !clickedDay) {
             return
         }
 
@@ -165,6 +205,7 @@ const Admin = () => {
     }, [clickedDay])
 
 
+
     // call when displayed month change
     const handlerActiveDateChange = ({ activeStartDate, value, view }) => {
 
@@ -193,7 +234,15 @@ const Admin = () => {
     // update list of available hours in DB
     const sendData = () => {
         firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${clickedDay}`).update(newHoursList)
-            .then(() => console.log('success')) // no response
+            .then(() => { // no response
+                console.log('success')
+
+                // clear clickedDay when change month
+                setClickedDay()
+
+                // clear state of hours
+                setDayHours([])
+            })
             .catch(err => console.log('err', err))
     }
 
@@ -223,20 +272,20 @@ const Admin = () => {
 
 
             {/* header */}
-            <h1 className={style.header}>Moduł: KALENDARZ - ADMIN</h1>
+            <h1 className={style.header}>Testowy moduł: KALENDARZ - ADMIN</h1>
             <p className={style.desc}>System CMS służy do zarządzania kalendarzem. Edytowanie, usuwanie i dodawanie zawartości. Skontaktuj się z nami i uzyskaj dostęp.</p>
 
 
             {/* nav */}
             <nav className={style.nav}>
                 <img className={style.nav_img} src={logo} alt='logo' />
-                <div className={style.nav_item}>
+                <div style={{ background: displayedTab === "terms" && "rgba(106, 12, 210, 0.8)" }} className={style.nav_item} onClick={() => setDisplayedTab("terms")}>
                     <div className={style.nav_icon}>
                         <CalendarIcon />
                     </div>
                     <p className={style.nav_text}>Terminy</p>
                 </div>
-                <div className={style.nav_item}>
+                <div style={{ background: displayedTab === "clients" && "rgba(106, 12, 210, 0.8)" }} className={style.nav_item} onClick={() => setDisplayedTab("clients")}>
                     <div className={style.nav_icon}>
                         <PeopleIcon />
                     </div>
@@ -245,10 +294,8 @@ const Admin = () => {
             </nav>
 
 
-            {/* moduł ADMIN */}
+            {/* section calendar */}
             <div className={style.calendar}>
-
-
                 <div className={style.calendar_container}>
 
 
@@ -260,7 +307,7 @@ const Admin = () => {
 
                     {/* choose date */}
                     <div className={style.calendar_date}>
-                        <p className={style.calendar_dateDesc}>Wybierz datę i godzinę:</p>
+                        <p className={style.calendar_dateDesc}>Wybierz datę:</p>
                         <Calendar
                             defaultView="month"
                             maxDetail="month"
@@ -270,11 +317,12 @@ const Admin = () => {
                             showFixedNumberOfWeeks={true}
                             tileContent={handlerTileContent} // add desc to day
                             tileDisabled={({ date }) => date.getMonth() !== parseInt(displayedMonth.split("-")[1])} // disable days in other months
+
                         />
                     </div>
 
-                    {/* available days */}
-                    {dayHours.length !== 0
+                    {/* nav tab terms (available days) */}
+                    {displayedTab === "terms" && dayHours.length !== 0
                         && <div className={style.calendar_hours}>
                             <div className={style.calendar_hoursTop}>
                                 <p className={style.calendar_hoursDesc}>Dodaj godziny:</p>
@@ -294,10 +342,29 @@ const Admin = () => {
                         </div>
                     }
 
+                    {/* nav tab clients  */}
+                    {displayedTab === "clients" && dayReservations.length !== 0
+                        && <div className={style.calendar_hours}>
+                            <div className={style.calendar_hoursTop}>
+                                <p className={style.calendar_hoursDesc}>Zarezerwowane terminy:</p>
+                            </div>
+                            <div className={style.calendar_hoursList}>
+                                {dayReservations.map(item => {
+                                    return (
+                                        <div className={style.calendar_reservationListItem} key={`${displayedMonth}-${clickedDay}-${item[0]}`}>
+                                            <p className={style.calendar_reservationListItemDate}>{`Data: ${displayedMonth.split('-')[0]}-${parseInt(displayedMonth.split('-')[1]) + 1}-${clickedDay}, godz: ${item[0]}, usługa: ${item[1].type}`}</p>
+                                            <p className={style.calendar_reservationListItemDesc}>{`Imię: ${item[1].name}`}</p>
+                                            <p className={style.calendar_reservationListItemDesc}>{`E-mail: ${item[1].email}`}</p>
+
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    }
                 </div>
-
-
             </div>
+
         </section>
     )
 }

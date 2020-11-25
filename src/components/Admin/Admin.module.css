@@ -172,6 +172,7 @@
     border: 0.1rem solid rgba(var(--accent), 1);
 }
 
+
 .calendar_hoursListItemInput {
     width: 1.2rem;
     height: 1.2rem;
@@ -186,4 +187,24 @@
 .calendar_hoursListItemDesc {
     font-size: 1rem;
     padding: 0.5rem;
+}
+
+.calendar_reservationListItem {
+    width: 100%;
+    padding: 0.5rem;
+    margin: 0.2rem;
+    font-size: 1rem;
+    display: flex;
+    flex-direction: column;
+    border: 0.1rem solid rgba(var(--accent), 1);
+}
+
+.calendar_reservationListItemDate {
+    font-size: 1rem;
+}
+
+.calendar_reservationListItemDesc {
+    padding-left: 1rem;
+    font-size: 1.2rem;
+    padding-top: 0.5rem;
 }

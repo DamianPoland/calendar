@@ -55,6 +55,11 @@
     color: black;
 }
 
+/* day item today*/
+.react-calendar__tile--now {
+    background: transparent;
+}
+
 /* when day item is active and hover */
 .react-calendar__tile:enabled:hover {
     background: rgba(var(--accent, 100, 100, 100), 0.2);
@@ -94,9 +99,9 @@
     cursor: auto !important;
 }
 
-/* day item today*/
-.react-calendar__tile--now {
-    background: transparent;
+/* day names */
+.react-calendar__viewContainerDisplayNone {
+    display: none;
 }
 
 

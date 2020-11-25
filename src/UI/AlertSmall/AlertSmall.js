@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import style from './AlertSmall.module.css'
 
 /* 
-komponent do pokazywania wsuwaneg alertu od góry na chwilę i au chowanie
+komponent do pokazywania wsuwaneg alertu od góry na chwilę i auto chowanie
 w props musi się znaleść:
 - alertIcon - OPCJONALNIE => główna ikonka (domyślnie iconDone), jeśli informacja to wtedy ustawić aletIcon='info', jeśli error to aletIcon='error'
 - description - OPCJONALNIE => główna informacja (domyślnie 'OK')

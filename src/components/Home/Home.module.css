@@ -38,6 +38,109 @@
     position: relative;
 }
 
+.calendar_reservation {
+    width: 90%;
+    height: 90%;
+    padding: 2rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 1);
+    border: 0.2rem solid rgba(var(--accent), 1);
+    border-radius: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.inputContainer {
+    width: 100%;
+    position: relative;
+
+}
+
+.input {
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 3rem;
+    align-self: center;
+
+    border: 2px transparent solid;
+    color: black;
+    font-size: 1.5rem;
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+}
+
+
+.inputIsInvalid {
+    border: red 2px solid;
+}
+
+.label {
+    font-size: 1.5rem;
+    padding: 1rem;
+    color: rgba(0, 0, 0, 0.6);
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    white-space: nowrap;
+    transition: 0.5s ease;
+}
+
+.input:focus+.label,
+.input:required:valid+.label {
+    /* to work in htmml must be required:true*/
+    display: flex;
+    transform: scale(0.7) translate(-1rem, -4rem);
+    color: rgb(var(--accent));
+}
+
+.input:focus {
+    border-left: green .3rem solid;
+    border-right: green .3rem solid;
+}
+
+/* Change background and color if input is autocompleate ;) */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+.input:-webkit-autofill:active {
+    transition: background-color 5000s ease-in-out 0s, color 9999s ease-in-out 0s;
+}
+
+.input::placeholder {
+    color: rgba(255, 255, 255, 0.6)
+}
+
+.inputCheckBoxContainer {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+
+}
+
+.inputCheckBox {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+.labelCheckBox {
+    font-size: 1.2rem;
+    padding: 0.5rem;
+}
+
+.inputIsInvalidCheckBox {
+    outline: 0.2rem solid red;
+}
+
+
 .calendar_header {
     display: flex;
     align-items: center;
@@ -113,21 +216,6 @@
     text-align: center;
 }
 
-.calendar_reservation {
-    width: 90%;
-    height: 90%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(255, 255, 255, 0.8);
-    border-radius: 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 1;
-}
 
 .calendar_reservationText {
     font-size: 1.5rem;
