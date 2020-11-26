@@ -4,6 +4,11 @@
     --colorCalendar: var(--accent, 100, 100, 100);
 }
 
+/* added class name with background color */
+.react-calendar__added-class-to-tile-custom {
+    background: rgb(200, 255, 200);
+}
+
 /* container */
 .react-calendar {
     width: 100%;
@@ -41,6 +46,11 @@
 .react-calendar__month-view__weekdays {
     font-size: 0.75rem;
     background: rgba(var(--colorCalendar), 0.2);
+}
+
+/* day names item*/
+.react-calendar__month-view__weekdays__weekday {
+    padding: 0.5rem;
 }
 
 /* day names text decoration*/
@@ -105,5 +115,26 @@
 }
 
 
+@media (max-width:500px) {
 
-@media (max-width:500px) {}
+    /* navigation button */
+    .react-calendar__navigation button {
+        font-size: 1rem;
+    }
+
+
+
+    /* day names item*/
+    .react-calendar__month-view__weekdays__weekday {
+        padding: 0.2rem;
+    }
+}
+
+@media (max-width:800px) {
+
+    /* day item */
+    .react-calendar__tile {
+        padding: 1rem 0.1rem;
+        font-size: 0.75rem;
+    }
+}

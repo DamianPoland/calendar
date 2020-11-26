@@ -3,55 +3,29 @@ import style from './Admin.module.css'
 import { firestore } from '../../shared/fire'
 import { CALENDAR, DAYS_RESERVATION, DAYS } from '../../shared/constans'
 
-
 // calendar
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css';
 import '../../shared/Calendar.css'
 
-
 // icons
 import { ReactComponent as CalendarIcon } from '../../assets/calendar.svg'
 import { ReactComponent as PeopleIcon } from '../../assets/people.svg'
-
 
 // images
 import logo from '../../assets/logo512.png'
 
 
-// list off hours in day structure: ["hour", false - hour NOT available(someone made reservation) or true - hour available, false - hour is NOT in DB or true hour is in DB] 
+
+// default list off hours in day structure: ["hour", false - hour NOT available(someone made reservation) or true - hour available, false - hour is NOT in DB or true hour is in DB] 
 let dafaultdWorkHoursList = [["8:00", true, false], ["9:00", true, false], ["10:00", true, false], ["11:00", true, false], ["12:00", true, false], ["13:00", true, false], ["14:00", true, false], ["15:00", true, false], ["16:00", true, false], ["17:00", true, false], ["18:00", true, false]]
 
-
-// list with all added hours in days fetched from DB
-let addedHoursList = []
 
 // hours list object to send to DB
 let newHoursList = {} // e.g.: { "12:00": true, "13:00": false, "14:00": true }
 
 
 const Admin = () => {
-
-    // STATE - left nav 
-    const [displayedTab, setDisplayedTab] = useState("terms") // tabs: "terms" "clients"
-
-
-    // STATE - set displayed month
-    const [displayedMonth, setDisplayedMonth] = useState(`${new Date().getFullYear()}-${new Date().getMonth()}`) // show today year and month in code: "2020-10" like in DB
-
-
-    // STATE - set work days - empty on the begining and fetched from DB (e.g.: [{ year: 2020, month: 10, day: 28 }, { year: 2020, month: 11, day: 4 }] -> month 0 - 11, day 1 - 31, NOTE: 0 is first month, month 12 will be 1 of next year, day 32 will be 1 next month)
-    const [workDays, setWorkDays] = useState([])
-
-
-    // STATE - set hours of day
-    const [dayHours, setDayHours] = useState([])
-
-    // STATE - set all reservations
-    const [dayReservations, setDayReservations] = useState([])
-
-    // STATE - set clicked day
-    const [clickedDay, setClickedDay] = useState()
 
 
     // EFFECT - scroll to top when open tab
@@ -60,24 +34,31 @@ const Admin = () => {
     // }, [])
 
 
-    // EFFECT (terms) - get live data HOURS (snapshot) from month collection according to state: displayedTab
+    // STATE - left nav tabs
+    const [displayedTab, setDisplayedTab] = useState("terms") // tabs: "terms" "clients"
+
+
+
+
+    // ----------------------- START MONTH CHANGE --------------------------//
+
+    // STATE - set displayed month
+    const [displayedMonth, setDisplayedMonth] = useState(`${new Date().getFullYear()}-${new Date().getMonth()}`) // default today, show today year and month in code: "2020-10" like in DB
+
+    // STATE - set loaded days for month from DB
+    const [loadedMonth, setLoadededMonth] = useState([])
+
+    // EFFECT (terms) - get live data HOURS (snapshot) from month collection according to state: displayedMonth
     useEffect(() => {
 
-        // clear clickedDay when change month
-        setClickedDay()
-
         // get days with added hours from DB 
-        const listenerDays = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).onSnapshot(
+        const listenerMonth = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).onSnapshot(
             resp => {
 
-
-                // help list with all added days fetched from DB
+                // help list with all added days in month fetched from DB
                 let addedDaysList = []
 
-                // clear list with all added hours in day in this month fetched from DB
-                addedHoursList = []
-
-                // save data from DB in lists - all days and hours in month
+                // save data from DB in lists - all days in month
                 resp.forEach(doc => {
 
                     // if no data then not show (if doc exist in DB but has no data)
@@ -90,36 +71,135 @@ const Admin = () => {
                     const day = { year: parseInt(yearMonth[0]), month: parseInt(yearMonth[1]), day: parseInt(doc.id) }
                     addedDaysList.push(day)
 
-                    // make list with all added hours in days in this month
-                    const hoursValue = Object.keys(doc.data()).map(item => [item, doc.data()[item]]).sort() // change object {hour: availability} to array [hour, availability] and sort
-                    const dayWithHours = { name: parseInt(doc.id), value: hoursValue }
-                    addedHoursList.push(dayWithHours)
                 })
 
                 // save list of all added days in month to state
-                setWorkDays(addedDaysList)
+                setLoadededMonth(addedDaysList)
             },
             err => console.log('err', err))
 
         //cleanup listener
-        return () => listenerDays()
+        return () => listenerMonth()
 
     }, [displayedMonth])
 
 
-    // EFFECT (clients) - get live data RESERVATION (snapshot) only for clients tab and for one day according to state: clickedDay
+    // call when displayed month change
+    const handlerActiveDateChange = ({ activeStartDate, value, view }) => {
+
+        // set state of visible year and month in code: "2020-10" like in DB => useEffect displayedMonth will start
+        setDisplayedMonth(`${activeStartDate.getFullYear()}-${activeStartDate.getMonth()}`)
+
+        // clear state of days
+        setDisplayedDay()
+        setLoadedDayHours([])
+        setLoadedDayReservations([])
+    }
+
+    // function to add description to evey day, if is no data add "pusto"
+    const handlerTileContent = ({ date, view }) => {
+        return (
+            !loadedMonth.some(disabledDateItem =>
+                date.getFullYear() === disabledDateItem.year && date.getMonth() === disabledDateItem.month && date.getDate() === disabledDateItem.day)
+                ? <p>pusto</p>
+                : null
+        )
+    }
+
+    // function to add class to evey day, if is data in db then add background
+    const handlerTileClassName = ({ date, view }) => {
+        return (
+            !loadedMonth.some(disabledDateItem =>
+                date.getFullYear() === disabledDateItem.year && date.getMonth() === disabledDateItem.month && date.getDate() === disabledDateItem.day)
+                ? null
+                : "react-calendar__added-class-to-tile-custom"
+        )
+    }
+
+    // ----------------------- END MONTH CHANGE --------------------------//
+
+
+
+
+    // ----------------------- START DAY CHANGE --------------------------//
+
+
+    // STATE - set displayed day - empty on the begining and when clicked put number
+    const [displayedDay, setDisplayedDay] = useState()
+
+    // STATE - set all hours of day (tab terms)
+    const [loadedDayHours, setLoadedDayHours] = useState([])
+
+    // STATE - set all reservations of day (tab clients)
+    const [loadedDayReservations, setLoadedDayReservations] = useState([])
+
+
+    // EFFECT - call when click day according to state: displayedDay
     useEffect(() => {
 
         // return when clicked day null
-        if (!clickedDay) {
+        if (!displayedDay) {
             return
         }
 
-        // get one day reservation
-        const listenerReservations = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${clickedDay}`).onSnapshot(
+        // if no document about this day is in DB - then create documents in DB
+        if (!loadedMonth.some(item => item.day === displayedDay)) {
+
+            // set dafaultdWorkHoursList as finalWorkHoursList to state setLoadedDayHours
+            setLoadedDayHours(dafaultdWorkHoursList)
+
+            // create empty document in DB with day for hours and day_reservation for reservations, doc('2021-0') => year-month,  first month is 0
+            firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${displayedDay}`).set({}) //set empty doc in DB: calendar/{year-month}/days/{displayedDay}
+                .then(() => firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${displayedDay}`).set({})) //set empty doc in DB: calendar/{year-month}/days_reservation/{displayedDay}
+                .then(() => console.log('success set documents: ', CALENDAR, displayedMonth, DAYS, displayedDay)) // no response
+                .catch(err => console.log('err', err))
+        }
+
+        // get live data (snapshot) added hours in day from DB
+        const listenerDay = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${displayedDay}`).onSnapshot(
             resp => {
 
-                // return when document not exist in DB
+                // return when document not exist yet in DB
+                if (!resp.data()) {
+                    return
+                }
+
+                // get hours of one day and make array
+                const arrayOfHours = Object.keys(resp.data()).map(item => [item, resp.data()[item]])
+
+                //add data from DB to dafaultdWorkHoursList 
+                const finalWorkHoursList = dafaultdWorkHoursList.map(item => {
+
+                    // must copy element - not reference
+                    let copiedArrayItem = [...item]
+
+                    // check if the same item is in arrayOfHours
+                    for (let i = 0; i < arrayOfHours.length; i++) {
+                        const element = arrayOfHours[i];
+
+                        // modify element in array if is in DB
+                        if (copiedArrayItem[0] === element[0]) {
+
+                            // check avalibility ( check if somebody made reservation)
+                            copiedArrayItem[1] = element[1]
+
+                            // always true because item is in DB
+                            copiedArrayItem[2] = true
+                        }
+                    }
+                    return copiedArrayItem
+                })
+
+                // set finalWorkHoursList to state
+                setLoadedDayHours(finalWorkHoursList)
+            },
+            err => console.log('err', err))
+
+        // get live data (snapshot) added reservations in day from DB 
+        const listenerReservations = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${displayedDay}`).onSnapshot(
+            resp => {
+
+                // return when document not exist yet in DB
                 if (!resp.data()) {
                     return
                 }
@@ -129,125 +209,28 @@ const Admin = () => {
                 const arrayOfReservationSorted = arrayOfReservation.sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
 
                 // save one day reservations array to state
-                setDayReservations(arrayOfReservationSorted)
-
+                setLoadedDayReservations(arrayOfReservationSorted)
             },
             err => console.log('err', err))
 
         //cleanup listener
-        return () => listenerReservations()
-
-    }, [clickedDay])
-
-
-
-    // EFFECT (terms) - call when click day according to state: clickedDay
-    useEffect(() => {
-
-        // return when displayed tab is not terms and clicked day null
-        if (displayedTab !== "terms" || !clickedDay) {
-            return
+        return () => {
+            listenerDay()
+            listenerReservations()
         }
 
-        // clear hours list object to send to DB
-        newHoursList = {}
+    }, [displayedDay])
 
-        // get json object of day number and hours (from DB) only one clicked day 
-        let clickedDayHours = addedHoursList.find(item => item.name === clickedDay)
 
-        // check if clickedDayHours is undefined (if no data about this day is in DB)
-        if (!clickedDayHours) {
-
-            // set dafaultdWorkHoursList as finalWorkHoursList to state setDayHours
-            setDayHours(dafaultdWorkHoursList)
-
-            // create empty document in DB with clicked day for hours and clicked day for reservations, doc('2021-0') => year-month,  first month is 0
-            firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${clickedDay}`).set({}) //set empty doc in DB: calendar/{year-month}/days/{clickedDay}
-                .then(() => firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${clickedDay}`).set({})) //set empty doc in DB: calendar/{year-month}/days_reservation/{clickedDay}
-                .then(() => console.log('success set documents: ', CALENDAR, displayedMonth, DAYS, clickedDay)) // no response
-                .catch(err => console.log('err', err))
-            return
-
-        } else {
-
-            // get array of hours (from DB) only one clicked day 
-            clickedDayHours = clickedDayHours.value
-        }
-
-        //add data from DB to dafaultdWorkHoursList 
-        const finalWorkHoursList = dafaultdWorkHoursList.map(item => {
-
-            // must copy element of array because is by reference
-            let copiedArrayItem = [item[0], item[1], item[2]]
-
-            // check if the same item is in array clickedDayHours
-            for (let i = 0; i < clickedDayHours.length; i++) {
-                const element = clickedDayHours[i];
-
-                // modify element in array if is in DB
-                if (copiedArrayItem[0] === element[0]) {
-
-                    // check avalibility ( check if somebody made reservation)
-                    copiedArrayItem[1] = element[1]
-
-                    // always true because item is in DB
-                    copiedArrayItem[2] = true
-                }
-            }
-            return copiedArrayItem
-        })
-
-        console.log("finalWorkHoursList: ", finalWorkHoursList);
-
-        // set finalWorkHoursList to state
-        setDayHours(finalWorkHoursList)
-
-    }, [clickedDay])
+    // ----------------------- END DAY CHANGE --------------------------//
 
 
 
-    // call when displayed month change
-    const handlerActiveDateChange = ({ activeStartDate, value, view }) => {
-
-        // set state of visible year and month in code: "2020-10" like in DB => useEffect displayedMonth will start
-        setDisplayedMonth(`${activeStartDate.getFullYear()}-${activeStartDate.getMonth()}`)
-
-        // cleaer state of days
-        setWorkDays([])
-
-        // clear state of hours
-        setDayHours([])
-    }
 
 
-    // function to add description to evey day, if is data in db then add "terminy" if not then add "pusto"
-    const handlerTileContent = ({ date, view }) => {
-        return (
-            !workDays.some(disabledDateItem =>
-                date.getFullYear() === disabledDateItem.year && date.getMonth() === disabledDateItem.month && date.getDate() === disabledDateItem.day)
-                ? <p>pusto</p>
-                : <p style={{ color: "rgba(0,200,0,1)", fontSize: "1rem", fontWeight: "bold" }}>terminy</p>
-        )
-    }
+    // ----------------------- START UPDATE HOURS LIST IN DB --------------------------//
 
-
-    // update list of available hours in DB
-    const sendData = () => {
-        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${clickedDay}`).update(newHoursList)
-            .then(() => { // no response
-                console.log('success')
-
-                // clear clickedDay when change month
-                setClickedDay()
-
-                // clear state of hours
-                setDayHours([])
-            })
-            .catch(err => console.log('err', err))
-    }
-
-
-    // add or delete hours from hours list object when check/uncheck
+    // add or delete hours from hours list object when check/uncheck checkbox
     const hoursListhandler = e => {
 
         // get hour name
@@ -266,6 +249,25 @@ const Admin = () => {
 
         console.log(newHoursList);
     }
+
+    // update list of added hours in DB
+    const sendData = () => {
+        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${displayedDay}`).update(newHoursList)
+            .then(() => { // no response
+                console.log('success')
+
+                // clear newHoursList
+                newHoursList = []
+
+            })
+            .catch(err => console.log('err', err))
+    }
+
+    // ----------------------- END UPDATE HOURS LIST IN DB --------------------------//
+
+
+
+
 
     return (
         <section className={style.background}>
@@ -305,6 +307,7 @@ const Admin = () => {
                         <p className={style.calendar_headerDesc}>Nazwa Firmy</p>
                     </div>
 
+
                     {/* choose date */}
                     <div className={style.calendar_date}>
                         <p className={style.calendar_dateDesc}>Wybierz datę:</p>
@@ -313,28 +316,29 @@ const Admin = () => {
                             maxDetail="month"
                             minDetail="month"
                             onActiveStartDateChange={handlerActiveDateChange}
-                            onClickDay={(value, event) => setClickedDay(value.getDate())}
+                            onClickDay={(value, event) => setDisplayedDay(value.getDate())}
                             showFixedNumberOfWeeks={true}
+                            tileClassName={handlerTileClassName} // add desc to day
                             tileContent={handlerTileContent} // add desc to day
                             tileDisabled={({ date }) => date.getMonth() !== parseInt(displayedMonth.split("-")[1])} // disable days in other months
-
                         />
                     </div>
 
+
                     {/* nav tab terms (available days) */}
-                    {displayedTab === "terms" && dayHours.length !== 0
-                        && <div className={style.calendar_hours}>
+                    {displayedTab === "terms" && loadedDayHours.length !== 0 &&
+                        <div className={style.calendar_hours}>
                             <div className={style.calendar_hoursTop}>
                                 <p className={style.calendar_hoursDesc}>Dodaj godziny:</p>
                                 <button className={style.calendar_hoursButton} onClick={sendData}>Zapisz</button>
                             </div>
                             <div className={style.calendar_hoursList}>
-                                {dayHours.map(item => {
+                                {loadedDayHours.map(item => {
                                     return (
-                                        <div className={style.calendar_hoursListItem} key={`${clickedDay} ${item[0]}`}>
+                                        <div className={style.calendar_hoursListItem} key={`${displayedDay} ${item[0]}`}>
                                             <input className={style.calendar_hoursListItemInput} disabled={item[2] ? true : false} defaultChecked={false} onChange={hoursListhandler} type="checkbox" name={item[0]} value={item[0]} />
                                             <label className={style.calendar_hoursListItemLabel} htmlFor={item[0]}>{item[0]}</label>
-                                            {item[2] && <p className={style.calendar_hoursListItemDesc}>{item[1] ? "Już dodano, nikt jeszcze się nie wpisał" : "Termin dodany i ZAREZERWOWANY."}</p>}
+                                            {item[2] && <p className={style.calendar_hoursListItemDesc}>{item[1] ? "Już dodano, nikt jeszcze się nie wpisał." : "ZAREZERWOWANY."}</p>}
                                         </div>
                                     )
                                 })}
@@ -342,20 +346,27 @@ const Admin = () => {
                         </div>
                     }
 
+
                     {/* nav tab clients  */}
-                    {displayedTab === "clients" && dayReservations.length !== 0
-                        && <div className={style.calendar_hours}>
+                    {displayedTab === "clients" && loadedDayReservations.length === 0 && displayedDay &&
+                        <div className={style.calendar_hours}>
+                            <div className={style.calendar_hoursTop}>
+                                <p className={style.calendar_hoursDesc}>Brak rezerwacji.</p>
+                            </div>
+                        </div>
+                    }
+                    {displayedTab === "clients" && loadedDayReservations.length !== 0 &&
+                        <div className={style.calendar_hours}>
                             <div className={style.calendar_hoursTop}>
                                 <p className={style.calendar_hoursDesc}>Zarezerwowane terminy:</p>
                             </div>
                             <div className={style.calendar_hoursList}>
-                                {dayReservations.map(item => {
+                                {loadedDayReservations.map(item => {
                                     return (
-                                        <div className={style.calendar_reservationListItem} key={`${displayedMonth}-${clickedDay}-${item[0]}`}>
-                                            <p className={style.calendar_reservationListItemDate}>{`Data: ${displayedMonth.split('-')[0]}-${parseInt(displayedMonth.split('-')[1]) + 1}-${clickedDay}, godz: ${item[0]}, usługa: ${item[1].type}`}</p>
+                                        <div className={style.calendar_reservationListItem} key={`${displayedMonth}-${displayedDay}-${item[0]}`}>
+                                            <p className={style.calendar_reservationListItemDate}>{`Data: ${displayedMonth.split('-')[0]}-${parseInt(displayedMonth.split('-')[1]) + 1}-${displayedDay}, godz: ${item[0]}, usługa: ${item[1].type}`}</p>
                                             <p className={style.calendar_reservationListItemDesc}>{`Imię: ${item[1].name}`}</p>
                                             <p className={style.calendar_reservationListItemDesc}>{`E-mail: ${item[1].email}`}</p>
-
                                         </div>
                                     )
                                 })}
@@ -364,7 +375,6 @@ const Admin = () => {
                     }
                 </div>
             </div>
-
         </section>
     )
 }

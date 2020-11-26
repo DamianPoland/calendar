@@ -39,13 +39,12 @@
 }
 
 .calendar_reservation {
-    width: 90%;
-    height: 90%;
+    min-width: 90%;
+    min-height: 90%;
     padding: 2rem;
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
     background: rgba(255, 255, 255, 1);
     border: 0.2rem solid rgba(var(--accent), 1);
     border-radius: 2rem;
@@ -54,7 +53,45 @@
     align-items: center;
     justify-content: center;
     z-index: 1;
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.5s ease-out;
 }
+
+.calendar_reservationVisible {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+
+.calendar_reservationHeader {
+    display: flex;
+    align-items: center;
+    padding-bottom: 2rem;
+}
+
+.calendar_reservationHeaderImg {
+    height: 3.5rem;
+    width: 3.5rem;
+    padding: .5rem
+}
+
+.calendar_reservationHeaderDesc {
+    padding-left: 10px;
+    font-size: 1.5rem;
+    color: black;
+    font-family: 'Kalam', cursive;
+    font-weight: bold;
+}
+
+.calendar_reservationText1 {
+    font-size: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+.calendar_reservationText2 {
+    font-size: 1.5rem;
+    padding-bottom: 3rem;
+}
+
 
 .inputContainer {
     width: 100%;
@@ -67,12 +104,11 @@
     padding: 1rem;
     margin-bottom: 3rem;
     align-self: center;
-
     border: 2px transparent solid;
     color: black;
     font-size: 1.5rem;
     outline: none;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 10px rgba(var(--accent), 0.5);
 }
 
 
@@ -101,8 +137,8 @@
 }
 
 .input:focus {
-    border-left: green .3rem solid;
-    border-right: green .3rem solid;
+    border-left: rgba(var(--accent), 0.5) .3rem solid;
+    border-right: rgba(var(--accent), 0.5) .3rem solid;
 }
 
 /* Change background and color if input is autocompleate ;) */
@@ -119,11 +155,9 @@
 
 .inputCheckBoxContainer {
     width: 100%;
-    padding: 0.5rem;
     font-size: 1rem;
     display: flex;
     align-items: center;
-
 }
 
 .inputCheckBox {
@@ -138,6 +172,34 @@
 
 .inputIsInvalidCheckBox {
     outline: 0.2rem solid red;
+}
+
+.calendar_reservationButtonsContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+
+.calendar_reservationButton {
+    padding: 0.5rem 2rem;
+    margin: 2rem;
+    font-size: 1rem;
+    outline: none;
+    border: 0.1rem solid rgba(var(--accent), 1);
+    background: white;
+    box-shadow: 0 0 10px rgba(var(--accent), 0.5);
+
+}
+
+.calendar_reservationButton:hover {
+    box-shadow: 0 0 20px rgba(var(--accent), 0.5);
+}
+
+.calendar_reservationButton:active {
+    box-shadow: 0 0 20px rgba(var(--accent), 1);
+    background: rgba(var(--accent), 1);
+    color: white;
 }
 
 
@@ -217,19 +279,20 @@
 }
 
 
-.calendar_reservationText {
-    font-size: 1.5rem;
-    padding: 2rem;
-}
-
-.calendar_reservationButton {
-    padding: 0.5rem 2rem;
-}
-
-
-
-
 @media (max-width:500px) {
+    .calendar {
+        padding: 4rem 1rem;
+    }
+
+    .calendar_container {
+        border-radius: 1rem;
+        padding: 1rem;
+    }
+
+    .calendar_reservation {
+        padding: 1rem;
+    }
+
     .calendar_service {
         width: 80%;
     }

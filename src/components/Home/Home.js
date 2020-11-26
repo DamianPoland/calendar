@@ -6,16 +6,13 @@ import { CALENDAR, DAYS_RESERVATION, DAYS } from '../../shared/constans'
 // components
 import AlertSmall from '../../UI/AlertSmall/AlertSmall'
 
-
 // calendar
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css';
 import '../../shared/Calendar.css'
 
-
 // images
 import logo from '../../assets/logo512.png'
-
 
 // list of services
 const services = [
@@ -25,41 +22,147 @@ const services = [
 ]
 
 
-// list with all available days fetched from DB
-let availableDaysList = []
-
-
-// list with all available hours in days fetched from DB
-let availableHoursList = []
-
-
-// clicked day
-let clickedDay = ''
-
-
 const Home = () => {
+
+
+    // EFFECT - scroll to top when open tab
+    // useEffect(() => {
+    //     window.scrollTo(0, 0)
+    // }, [])
+
+
+
+    // ----------------------- START MONTH CHANGE --------------------------//
+
+
+    // STATE - set displayed month
+    const [displayedMonth, setDisplayedMonth] = useState(`${new Date().getFullYear()}-${new Date().getMonth()}`) // default today, show today year and month in code: "2020-10" like in DB
+
+    // STATE - set loaded days for month from DB
+    const [loadedMonth, setLoadededMonth] = useState([])
+
+    // EFFECT - get live data (snapshot) from month collection according to state: displayedMonth
+    useEffect(() => {
+
+        // get available days in month from DB
+        const listenerMonth = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).onSnapshot(
+            resp => {
+
+                // help list with all available days fetched from DB
+                let availableDaysList = []
+
+                // save data from DB in lists - all days in month
+                resp.forEach(doc => {
+
+                    // if no data then not show (if doc exist in DB but has no data)
+                    if (Object.keys(doc.data()).length === 0) {
+                        return
+                    }
+
+                    // make list with all available days in this month
+                    const yearMonth = displayedMonth.split('-')
+                    const day = { year: parseInt(yearMonth[0]), month: parseInt(yearMonth[1]), day: parseInt(doc.id) }
+                    availableDaysList.push(day)
+
+                })
+
+                // save list of all days in month to state
+                setLoadededMonth(availableDaysList)
+
+            },
+            err => console.log('err', err))
+
+        //cleanup listener
+        return () => listenerMonth()
+
+    }, [displayedMonth])
+
+
+    // call when displayed month change
+    const handlerActiveDateChange = ({ activeStartDate, value, view }) => {
+
+        // set state of visible year and month in code: "2020-10" like in DB => useEffect will start
+        setDisplayedMonth(`${activeStartDate.getFullYear()}-${activeStartDate.getMonth()}`)
+
+        // cleaer state of days
+        setDisplayedDay()
+        setLoadedDay([])
+    }
+
+
+    // function to enable/disable days, fuction call for every visible day in calendar and if return true than disabled day and if return false then enabled day
+    const handlerTileDisabled = ({ date, view }) => {
+        return (
+            !loadedMonth.some(disabledDateItem =>
+                date.getFullYear() === disabledDateItem.year && date.getMonth() === disabledDateItem.month && date.getDate() === disabledDateItem.day)
+        )
+    }
+
+    // ----------------------- END MONTH CHANGE --------------------------//
+
+
+
+
+
+    // ----------------------- START DAY CHANGE --------------------------//
+
+
+    // STATE - set displayed days - empty on the begining and when clicked put number
+    const [displayedDay, setDisplayedDay] = useState()
+
+
+    // STATE - set array of hours in displayed day fetched from DB (e.g.: [{year: 2020, month: 10, day: 28}, {year: 2020, month: 11, day: 4}] -> month 0-11 , day 1-31
+    const [loadedDay, setLoadedDay] = useState([])
+
+
+    // EFFECT - get live data (snapshot) from day document according to state: displayedDay
+    useEffect(() => {
+
+        // return when displayed day is null
+        if (!displayedDay) {
+            return
+        }
+
+        // get live data (snapshot) added hours in day from DB
+        const listenerDay = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${displayedDay}`).onSnapshot(
+            resp => {
+
+                // return when document not exist in DB
+                if (!resp.data()) {
+                    return
+                }
+
+                // get hours of one day and make array
+                const arrayOfHours = Object.keys(resp.data()).map(item => [item, resp.data()[item]])
+                const arrayOfHoursSorted = arrayOfHours.sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+
+                // save one day reservations array to state
+                setLoadedDay(arrayOfHoursSorted)
+            },
+            err => console.log('err', err))
+
+        //cleanup listener
+        return () => listenerDay()
+
+    }, [displayedDay])
+
+
+    // ----------------------- END DAY CHANGE --------------------------//
+
+
+
+
+
+    // ----------------------- START RESERVATION --------------------------//
 
 
     // STATE - set service id
     const [service, setService] = useState(services[0].id)
 
-
-    // STATE - set displayed month
-    const [displayedMonth, setDisplayedMonth] = useState(`${new Date().getFullYear()}-${new Date().getMonth()}`) // show today year and month in code: "2020-10" like in DB
-
-
-    // STATE - set enabled days - empty on the begining and fetched from DB (e.g.: [{year: 2020, month: 10, day: 28}, {year: 2020, month: 11, day: 4}] -> month 0-11 , day 1-31, NOTE: 0 is first month, month 12 will be 1 of next year, day 32 will be 1 next month)
-    const [enabledDays, setEnabledDays] = useState([])
-
-
-    // STATE - set hours of day
-    const [dayHours, setDayHours] = useState([])
-
-
-    // STATE - poup reservation, false or day number
+    // STATE - show/hide popup reservation, false or day number
     const [reservation, setReservation] = useState(false)
 
-    // STATE - poup alert "reservation done"
+    // STATE - popup alert "reservation done"
     const [alertSmall, setAlertSmall] = useState(false)
 
     // STATE - input Name
@@ -74,94 +177,6 @@ const Home = () => {
     const [inputAgreenent, setAgreenent] = useState(false) // input value
     const [inputAgreenentInvalid, setInputAgreenentIsInvalid] = useState(false) // only for set isValid/inInvalid before send
 
-
-    // EFFECT - scroll to top when open tab
-    useEffect(() => {
-        window.scrollTo(0, 0)
-    }, [])
-
-
-
-    // EFFECT - get live data (snapshot) from month collection according to state: displayedMonth
-    useEffect(() => {
-
-        // get available days from DB
-        const listener = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).onSnapshot(
-            resp => {
-
-                // clear list with all available days in this month fetched from DB
-                availableDaysList = []
-
-                // clear list with all available hours in day in this month fetched from DB
-                availableHoursList = []
-
-                // save data from DB in lists - all days and hours in month
-                resp.forEach(doc => {
-
-                    // if no data then not show (if doc exist in DB but has no data)
-                    if (Object.keys(doc.data()).length === 0) {
-                        return
-                    }
-
-                    // make list with all available days in this month
-                    const yearMonth = displayedMonth.split('-')
-                    const day = { year: parseInt(yearMonth[0]), month: parseInt(yearMonth[1]), day: parseInt(doc.id) }
-                    availableDaysList.push(day)
-
-                    // make list with all available hours in days in this month
-                    const hoursValue = Object.keys(doc.data()).map(item => [item, doc.data()[item]]) // change object {hour: availability} to array [hour, availability]
-                    hoursValue.sort((a, b) => parseInt(a[0]) - parseInt(b[0])) // sort
-                    const dayWithHours = { name: parseInt(doc.id), value: hoursValue }
-                    availableHoursList.push(dayWithHours)
-                })
-
-                // save list of all days in month to state
-                setEnabledDays(availableDaysList)
-
-                // clear reservation
-                setReservation(false)
-            },
-            err => console.log('err', err))
-
-        //cleanup listener
-        return () => listener()
-
-    }, [displayedMonth])
-
-
-    // call when displayed month change
-    const handlerActiveDateChange = ({ activeStartDate, value, view }) => {
-
-        // set state of visible year and month in code: "2020-10" like in DB => useEffect will start
-        setDisplayedMonth(`${activeStartDate.getFullYear()}-${activeStartDate.getMonth()}`)
-
-        // cleaer state of days
-        setEnabledDays([])
-
-        // clear state of hours
-        setDayHours([])
-    }
-
-    // call when click day
-    const handlerClickDay = (value, event) => {
-
-        // set state of available and disable hours in clicked day
-        const clickedDayHours = availableHoursList.find(item => item.name === value.getDate()).value
-        setDayHours(clickedDayHours)
-
-        // save clicked day for reservation
-        clickedDay = value.getDate()
-    }
-
-    // function to enable/disable days, fuction call for every visible day in calendar and if return true than disabled day and if return false then enabled day
-    const handlerTileDisabled = ({ date, view }) => {
-        return (
-
-            // disable all days and enable days from state
-            !enabledDays.some(disabledDateItem =>
-                date.getFullYear() === disabledDateItem.year && date.getMonth() === disabledDateItem.month && date.getDate() === disabledDateItem.day)
-        )
-    }
 
     // function to sent reservation to DB
     const sendReservation = () => {
@@ -194,20 +209,23 @@ const Home = () => {
             setInputAgreenentIsInvalid(false)
         }
 
-
         //check if all inputs are valid
         if (isInvalid) {
             return
         }
 
         // in DB: update hour that is reserved add add reservation data
-        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${clickedDay}`).update({ [reservation]: false }) // update hour that is reserved
-            .then(() => firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${clickedDay}`).update({ [reservation]: { name: inputName, email: inputEmail, type: services.find(item => item.id === service).name } })) // add add reservation data
+        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${displayedDay}`).update({ [reservation]: false }) // update hour that is reserved
+            .then(() => firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${displayedDay}`).update({ [reservation]: { name: inputName, email: inputEmail, type: services.find(item => item.id === service).name } })) // add add reservation data
             .then(() => {
-                console.log('success set documents: ', CALENDAR, displayedMonth, DAYS, clickedDay)
+                console.log('success set documents: ', CALENDAR, displayedMonth, DAYS, displayedDay)
 
                 // show alert 'reservation done
                 setAlertSmall(true)
+
+                // clear inputs
+                setInputName('')
+                setInputEmail('')
 
             }) // no response
             .catch(err => console.log('err', err))
@@ -215,11 +233,21 @@ const Home = () => {
         // close reservation popup
         setReservation(false)
 
-        // clear state of hours
-        setDayHours([])
-
-        console.log("sent reservation");
     }
+
+    // function to cancel reservation to DB
+    const cancelReservation = () => {
+        setReservation(false)
+        setInputNameIsInvalid(false)
+        setInputEmailIsInvalid(false)
+        setInputAgreenentIsInvalid(false)
+    }
+
+    // ----------------------- END RESERVATION --------------------------//
+
+
+
+
 
 
     return (
@@ -231,42 +259,39 @@ const Home = () => {
 
             {/* header */}
             <h1 className={style.header}>Testowy moduł: KALENDARZ</h1>
-            <p className={style.desc}>Przykładowy modół kalendarza służy do rezerwowania terminów. Może służyć do rezerwacji stolików w restauracji, wizyty u specjalisty itp.</p>
+            <p className={style.desc}>Przykładowy moduł kalendarza służy do rezerwowania terminów np: stolików w restauracji, wizyty u specjalisty itp.</p>
 
 
+            {/* calendar container */}
             <div className={style.calendar}>
                 <div className={style.calendar_container}>
 
 
                     {/* reservation popup*/}
-                    {
-                        reservation &&
-                        <div className={style.calendar_reservation}>
-                            <div className={style.calendar_header}>
-                                <img className={style.calendar_headerImg} src={logo} alt='logo' />
-                                <p className={style.calendar_headerDesc}>Nazwa Firmy</p>
-                            </div>
-                            <p className={style.calendar_reservationText}>{`Rezerwacja terminu: ${displayedMonth.split('-')[0]}-${parseInt(displayedMonth.split('-')[1]) + 1}-${clickedDay}, godz: ${reservation}`}</p>
-                            <p className={style.calendar_reservationText}>{`Usługa: ${services.find(item => item.id === service).name}`}</p>
-                            <div className={style.inputContainer}>
-                                <input onChange={event => setInputName(event.target.value)} value={inputName} onFocus={() => setInputNameIsInvalid(false)} className={`${style.input} ${inputNameIsInvalid && style.inputIsInvalid}`} type='text' required />
-                                <label className={style.label}>Twoje imię:</label>
-                            </div>
-                            <div className={style.inputContainer}>
-                                <input onChange={event => setInputEmail(event.target.value)} value={inputEmail} onFocus={() => setInputEmailIsInvalid(false)} className={`${style.input} ${inputEmailIsInvalid && style.inputIsInvalid}`} type='text' required />
-                                <label className={style.label}>Twój e-mail:</label>
-                            </div>
-                            <div className={style.inputCheckBoxContainer}>
-                                <input onChange={event => setAgreenent(event.target.checked ? true : false)} onFocus={() => setInputAgreenentIsInvalid(false)} className={`${style.inputCheckBox} ${inputAgreenentInvalid && style.inputIsInvalidCheckBox}`} type='checkbox' />
-                                <label className={style.labelCheckBox}>Zapoznałem się i akceptuję regulamin serwisu.</label>
-                            </div>
-
-
-
-                            <button className={style.calendar_reservationButton} onClick={() => setReservation(false)}>Cofnij</button>
+                    <div className={`${style.calendar_reservation} ${reservation && style.calendar_reservationVisible}`}>
+                        <div className={style.calendar_reservationHeader}>
+                            <img className={style.calendar_reservationHeaderImg} src={logo} alt='logo' />
+                            <p className={style.calendar_reservationHeaderDesc}>Nazwa Firmy</p>
+                        </div>
+                        <p className={style.calendar_reservationText1}>{`Rezerwacja terminu: ${displayedMonth.split('-')[0]}-${parseInt(displayedMonth.split('-')[1]) + 1}-${displayedDay}, godz: ${reservation}`}</p>
+                        <p className={style.calendar_reservationText2}>{`Usługa: ${services.find(item => item.id === service).name}`}</p>
+                        <div className={style.inputContainer}>
+                            <input onChange={event => setInputName(event.target.value)} value={inputName} onFocus={() => setInputNameIsInvalid(false)} className={`${style.input} ${inputNameIsInvalid && style.inputIsInvalid}`} type='text' required />
+                            <label className={style.label}>Twoje imię:</label>
+                        </div>
+                        <div className={style.inputContainer}>
+                            <input onChange={event => setInputEmail(event.target.value)} value={inputEmail} onFocus={() => setInputEmailIsInvalid(false)} className={`${style.input} ${inputEmailIsInvalid && style.inputIsInvalid}`} type='text' required />
+                            <label className={style.label}>Twój e-mail:</label>
+                        </div>
+                        <div className={style.inputCheckBoxContainer}>
+                            <input onChange={event => setAgreenent(event.target.checked ? true : false)} onFocus={() => setInputAgreenentIsInvalid(false)} className={`${style.inputCheckBox} ${inputAgreenentInvalid && style.inputIsInvalidCheckBox}`} type='checkbox' />
+                            <label className={style.labelCheckBox}>Zapoznałem się i akceptuję regulamin serwisu.</label>
+                        </div>
+                        <div className={style.calendar_reservationButtonsContainer}>
+                            <button className={style.calendar_reservationButton} onClick={cancelReservation}>Cofnij</button>
                             <button className={style.calendar_reservationButton} onClick={sendReservation}>Rezerwuj</button>
                         </div>
-                    }
+                    </div>
 
 
                     {/* company description*/}
@@ -295,7 +320,7 @@ const Home = () => {
                             maxDate={new Date(`${new Date().getFullYear() + 1}, ${new Date().getMonth() + 1}, ${new Date().getDate()}`)}
                             minDate={new Date(`${new Date().getFullYear()}, ${new Date().getMonth() + 1}, ${new Date().getDate()}`)}
                             onActiveStartDateChange={handlerActiveDateChange}
-                            onClickDay={handlerClickDay}
+                            onClickDay={(value, event) => setDisplayedDay(value.getDate())}
                             showFixedNumberOfWeeks={true}
                             tileDisabled={handlerTileDisabled}
                         />
@@ -303,11 +328,11 @@ const Home = () => {
 
 
                     {/* available days */}
-                    {dayHours.length !== 0
-                        && <div className={style.calendar_hours}>
+                    {loadedDay.length !== 0 &&
+                        <div className={style.calendar_hours}>
                             <p className={style.calendar_hoursDesc}>Dostępne godziny:</p>
                             <div className={style.calendar_hoursList}>
-                                {dayHours.map(item => {
+                                {loadedDay.map(item => {
                                     return (
                                         <p style={{ background: item[1] ? "rgb(0, 200, 0)" : "rgb(200, 0, 0)", cursor: item[1] ? "pointer" : "default" }}
                                             className={style.calendar_hoursListItem}
@@ -318,7 +343,6 @@ const Home = () => {
                             </div>
                         </div>
                     }
-
                 </div>
             </div>
         </section>
