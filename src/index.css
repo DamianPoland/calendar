@@ -13,7 +13,7 @@ html,
 body {
   font-size: 100%;
   overflow-x: hidden;
-  background-color: black;
+  background: var(--backgroundCustom);
   color: white;
 
   /* scrollbar ONLY for mozilla, scrollbar-width - "auto" or "thin"  */

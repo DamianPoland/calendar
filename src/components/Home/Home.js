@@ -5,6 +5,8 @@ import { CALENDAR, DAYS_RESERVATION, DAYS } from '../../shared/constans'
 
 // components
 import AlertSmall from '../../UI/AlertSmall/AlertSmall'
+import Spinner from '../../UI/Spinner/Spinner'
+import Alert from '../../UI/Alert/Alert'
 
 // calendar
 import Calendar from 'react-calendar'
@@ -23,6 +25,12 @@ const services = [
 
 
 const Home = () => {
+
+    // STATE - show/hide spinner
+    const [showSpinner, setShowSpinner] = useState(false)
+
+    // STATE - show/hide error(alert)
+    const [showAlert, setShowAlert] = useState(false)
 
 
     // EFFECT - scroll to top when open tab
@@ -43,6 +51,9 @@ const Home = () => {
 
     // EFFECT - get live data (snapshot) from month collection according to state: displayedMonth
     useEffect(() => {
+
+        //show spinner
+        setShowSpinner(true)
 
         // get available days in month from DB
         const listenerMonth = firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).onSnapshot(
@@ -69,9 +80,18 @@ const Home = () => {
                 // save list of all days in month to state
                 setLoadededMonth(availableDaysList)
 
-            },
-            err => console.log('err', err))
+                //hide spinner
+                setShowSpinner(false)
 
+            },
+            err => {
+
+                //hide spinner
+                setShowSpinner(false)
+
+                // show alert
+                setShowAlert({ name: "", details: err.message })
+            })
         //cleanup listener
         return () => listenerMonth()
 
@@ -139,7 +159,8 @@ const Home = () => {
                 // save one day reservations array to state
                 setLoadedDay(arrayOfHoursSorted)
             },
-            err => console.log('err', err))
+            err => setShowAlert({ name: "", details: err.message })
+        )
 
         //cleanup listener
         return () => listenerDay()
@@ -266,7 +287,6 @@ const Home = () => {
             <div className={style.calendar}>
                 <div className={style.calendar_container}>
 
-
                     {/* reservation popup*/}
                     <div className={`${style.calendar_reservation} ${reservation && style.calendar_reservationVisible}`}>
                         <div className={style.calendar_reservationHeader}>
@@ -313,17 +333,22 @@ const Home = () => {
                     {/* choose date */}
                     <div className={style.calendar_date}>
                         <p className={style.calendar_dateDesc}>Wybierz datę i godzinę:</p>
-                        <Calendar
-                            defaultView="month"
-                            maxDetail="month"
-                            minDetail="month"
-                            maxDate={new Date(`${new Date().getFullYear() + 1}, ${new Date().getMonth() + 1}, ${new Date().getDate()}`)}
-                            minDate={new Date(`${new Date().getFullYear()}, ${new Date().getMonth() + 1}, ${new Date().getDate()}`)}
-                            onActiveStartDateChange={handlerActiveDateChange}
-                            onClickDay={(value, event) => setDisplayedDay(value.getDate())}
-                            showFixedNumberOfWeeks={true}
-                            tileDisabled={handlerTileDisabled}
-                        />
+                        <div className={style.calendar_dateContainer}>
+                            {showSpinner && <Spinner />}
+                            {showAlert && <Alert alertName={showAlert.name} alertDetails={showAlert.details} click={() => setShowAlert(false)} />}
+                            <Calendar
+                                defaultView="month"
+                                maxDetail="month"
+                                minDetail="month"
+                                maxDate={new Date(`${new Date().getFullYear() + 1}, ${new Date().getMonth() + 1}, ${new Date().getDate()}`)}
+                                minDate={new Date(`${new Date().getFullYear()}, ${new Date().getMonth() + 1}, ${new Date().getDate()}`)}
+                                onActiveStartDateChange={handlerActiveDateChange}
+                                onClickDay={(value, event) => setDisplayedDay(value.getDate())}
+                                showFixedNumberOfWeeks={true}
+                                tileDisabled={handlerTileDisabled}
+                            />
+                        </div>
+
                     </div>
 
 
