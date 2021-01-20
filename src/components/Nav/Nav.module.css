@@ -60,8 +60,8 @@
 .listItemAnchor {
     padding: 1rem;
     text-decoration: none;
-    color: rgba(255, 255, 255, 0.8);
     font-size: 1.2rem;
+    color: rgb(200, 200, 200);
 }
 
 .activeLink {

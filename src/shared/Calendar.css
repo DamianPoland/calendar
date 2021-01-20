@@ -94,7 +94,7 @@
 /* when day item is INactive */
 .react-calendar__tile:disabled {
     background: rgb(240, 240, 240);
-    color: rgba(0, 0, 0, 0.3)
+    color: rgba(150, 150, 150, 1);
 }
 
 /* when day item is weekend*/

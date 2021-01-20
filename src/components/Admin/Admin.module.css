@@ -123,7 +123,7 @@
 .login_label {
     font-size: 1.5rem;
     padding: 1rem;
-    color: rgba(0, 0, 0, 0.6);
+    color: rgba(150, 150, 150, 1);
     position: absolute;
     left: 0;
     top: 0;
@@ -163,7 +163,7 @@
 }
 
 .login_input::placeholder {
-    color: rgba(255, 255, 255, 0.6)
+    color: rgba(150, 150, 150, 1);
 }
 
 .login_inputCheckBoxContainer {

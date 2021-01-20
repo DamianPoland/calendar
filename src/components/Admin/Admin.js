@@ -350,6 +350,13 @@ const Admin = props => {
 
     // update list of added hours in DB
     const sendData = () => {
+
+        // return if object is empty - no entries
+        if (Object.entries(newHoursList).length === 0) {
+            return
+        }
+
+        //update DB
         firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${displayedDay}`).update(newHoursList)
             .then(() => { // no response
                 // console.log('success')
@@ -428,7 +435,7 @@ const Admin = props => {
                         <input onChange={event => setInputLoginPassword(event.target.value)} value={inputLoginPassword} onFocus={() => setInputLoginPasswordIsInvalid(false)} className={`${style.login_input} ${inputLoginPasswordIsInvalid && style.login_inputIsInvalid}`} type={showPassword} required />
                         <label className={style.login_label}>Hasło:</label>
                         <div className={style.login_icon} onClick={() => setShowPassword(i => i === "password" ? "text" : "password")}>
-                            {showPassword === "password" ? <EyeOn /> : <EyeOff />}
+                            {showPassword === "password" ? <EyeOff /> : <EyeOn />}
                         </div>
                     </div>
                     <div className={style.inputCheckBoxContainer}>
