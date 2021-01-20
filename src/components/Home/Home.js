@@ -239,7 +239,7 @@ const Home = () => {
         firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${displayedDay}`).update({ [reservation]: false }) // update hour that is reserved
             .then(() => firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${displayedDay}`).update({ [reservation]: { name: inputName, email: inputEmail, type: services.find(item => item.id === service).name } })) // add add reservation data
             .then(() => {
-                console.log('success set documents: ', CALENDAR, displayedMonth, DAYS, displayedDay)
+                // console.log('success set documents: ', CALENDAR, displayedMonth, DAYS, displayedDay)
 
                 // show alert 'reservation done
                 setAlertSmall(true)

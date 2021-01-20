@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import style from './Admin.module.css'
+import firebase from "firebase/app";
 import { firestore, auth } from '../../shared/fire'
 import { CALENDAR, DAYS_RESERVATION, DAYS } from '../../shared/constans'
 
@@ -18,6 +19,7 @@ import { ReactComponent as PeopleIcon } from '../../assets/people.svg'
 import { ReactComponent as Logout } from '../../assets/logout.svg'
 import { ReactComponent as EyeOn } from '../../assets/eyeOn.svg'
 import { ReactComponent as EyeOff } from '../../assets/eyeOff.svg'
+import { ReactComponent as DustBin } from '../../assets/dustbin.svg'
 
 // images
 import logo from '../../assets/logo512.png'
@@ -247,7 +249,7 @@ const Admin = props => {
             // create empty document in DB with day for hours and day_reservation for reservations, doc('2021-0') => year-month,  first month is 0
             firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${displayedDay}`).set({}) //set empty doc in DB: calendar/{year-month}/days/{displayedDay}
                 .then(() => firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${displayedDay}`).set({})) //set empty doc in DB: calendar/{year-month}/days_reservation/{displayedDay}
-                .then(() => console.log('success set documents: ', CALENDAR, displayedMonth, DAYS, displayedDay)) // no response
+                // .then(() => console.log('success set documents: ', CALENDAR, displayedMonth, DAYS, displayedDay)) // no response
                 .catch(err => setShowAlert({ name: "", details: err.message }))
         }
 
@@ -343,20 +345,31 @@ const Admin = props => {
             delete newHoursList[hour]
         }
 
-        console.log(newHoursList);
+        // console.log(newHoursList);
     }
 
     // update list of added hours in DB
     const sendData = () => {
         firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${displayedDay}`).update(newHoursList)
             .then(() => { // no response
-                console.log('success')
+                // console.log('success')
 
                 // clear newHoursList
                 newHoursList = []
 
             })
             .catch(err => setShowAlert({ name: "", details: err.message }))
+    }
+
+    // delete hour in DB
+    const deleteHourInDB = hourClicked => {
+
+        // delete only one hour in DB in DAYS collection and DAYS_RESERVATION collection
+        firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS).doc(`${displayedDay}`).update({ [hourClicked]: firebase.firestore.FieldValue.delete() })
+            .then(() => firestore.collection(CALENDAR).doc(displayedMonth).collection(DAYS_RESERVATION).doc(`${displayedDay}`).update({ [hourClicked]: firebase.firestore.FieldValue.delete() }))
+            .then(() => { // no response
+                // console.log('deleted')
+            })
     }
 
     // ----------------------- END UPDATE HOURS LIST IN DB --------------------------//
@@ -471,7 +484,10 @@ const Admin = props => {
                                     {loadedDayHours.map(item => {
                                         return (
                                             <div className={style.calendar_hoursListItem} key={`${displayedDay} ${item[0]}`}>
-                                                <input className={style.calendar_hoursListItemInput} disabled={item[2] ? true : false} defaultChecked={false} onChange={hoursListhandler} type="checkbox" name={item[0]} value={item[0]} />
+                                                {item[2]
+                                                    ? <div onClick={() => deleteHourInDB(item[0])} className={style.nav_iconHoursListItem}><DustBin /></div>
+                                                    : <input className={style.calendar_hoursListItemInput} defaultChecked={false} onChange={hoursListhandler} type="checkbox" name={item[0]} value={item[0]} />
+                                                }
                                                 <label className={style.calendar_hoursListItemLabel} htmlFor={item[0]}>{item[0]}</label>
                                                 {item[2] && <p className={style.calendar_hoursListItemDesc}>{item[1] ? "Już dodano, nikt jeszcze się nie wpisał." : "ZAREZERWOWANY."}</p>}
                                             </div>

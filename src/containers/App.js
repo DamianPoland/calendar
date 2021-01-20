@@ -19,11 +19,10 @@ function App() {
   useEffect(() => {
     auth.onAuthStateChanged(user => {
       user ? setIsLogin(true) : setIsLogin(false)
-      user ? console.log('logIN') : console.log('logOUT');
 
       if (user) {
         user.getIdTokenResult()
-          .then(token => console.log("admin: ", token.claims.admin))
+        // .then(token => console.log("admin: ", token.claims.admin))
       }
 
     })
