@@ -333,6 +333,8 @@
 }
 
 .nav_iconHoursListItem {
+    width: 1.2rem;
+    height: 1.2rem;
     min-width: 1.2rem;
     min-height: 1.2rem;
 }
