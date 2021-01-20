@@ -391,12 +391,14 @@ const Admin = props => {
                     </div>
                     <p className={style.nav_text}>Terminy</p>
                 </div>
-                <div style={{ background: displayedTab === "clients" && "rgba(106, 12, 210, 0.8)" }} className={style.nav_item} onClick={() => setDisplayedTab("clients")}>
-                    <div className={style.nav_icon}>
-                        <PeopleIcon />
+                {props.isLogin &&
+                    <div style={{ background: displayedTab === "clients" && "rgba(106, 12, 210, 0.8)" }} className={style.nav_item} onClick={() => setDisplayedTab("clients")}>
+                        <div className={style.nav_icon}>
+                            <PeopleIcon />
+                        </div>
+                        <p className={style.nav_text}>Klienci</p>
                     </div>
-                    <p className={style.nav_text}>Klienci</p>
-                </div>
+                }
                 {props.isLogin &&
                     <div className={`${style.nav_item} ${style.nav_itemLogout}`} onClick={() => auth.signOut()}>
                         <div className={style.nav_icon}>

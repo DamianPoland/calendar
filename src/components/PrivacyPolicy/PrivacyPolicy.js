@@ -18,7 +18,7 @@ const PrivacyPolicy = () => {
                 <div>
                     <h2><strong className={style.font}>1. Informacje ogólne</strong></h2>
                     <ol>
-                        <li>Niniejsza polityka dotyczy Serwisu www, funkcjonującego pod adresem url: <b>calendar.studio-www.com</b></li>
+                        <li>Niniejsza polityka dotyczy Serwisu www, funkcjonującego pod adresem url: <b>kalendarz.studio-www.com</b></li>
                         <li>Operatorem serwisu oraz Administratorem danych osobowych jest: studio-www.com</li>
 
                         <li>Adres kontaktowy poczty elektronicznej operatora: info@studio-www.com</li>
